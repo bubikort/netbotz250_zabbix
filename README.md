@@ -1,10 +1,21 @@
-# netbotz250_zabbix template
+#NetBotz 250 Zabbix Template
 
-based on this one: https://github.com/zabbix/community-templates/tree/main/SCADA_IoT_Energy_Home_Automation_Industrial_monitoring/Monitoring_Equipment/template_apc_netbotz_monitor_2xx/6.0
+Based on the following template:
+https://github.com/zabbix/community-templates/tree/main/SCADA_IoT_Energy_Home_Automation_Industrial_monitoring/Monitoring_Equipment/template_apc_netbotz_monitor_2xx/6.0
 
-Added two new LLD Discovery with Items, and Triggers
-- Smoke Sensor
-- Fluid Sensor
+Changes and Additions
 
-Automatically discovery all connected smoke and fluid sensor and add the two related item check(Is smoke/fluid detected), no matter in which port you are connected the devices. 
-All trigger's thresholds comes from what you set up on the GUI of netbotz.
+Added two new LLD (Low-Level Discovery) rules with corresponding items and triggers:
+	•	Smoke Sensor
+	•	Fluid Sensor
+
+Features
+	•	Automatically discovers all connected smoke and fluid sensors, regardless of which port they are connected to.
+	•	Adds two related item checks for each discovered sensor:
+  	•	Is smoke detected
+	  •	Is fluid detected
+	•	Trigger thresholds are based on the configuration set in the NetBotz GUI.
+
+⸻
+
+Let me know if you’d like it adapted for a README file or documentation.
