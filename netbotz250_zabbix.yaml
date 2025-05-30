@@ -1,0 +1,997 @@
+zabbix_export:
+  version: '7.0'
+  template_groups:
+    - uuid: 7df96b18c230490a9a0a9e2307226338
+      name: Templates
+  templates:
+    - uuid: ebe42ccdeb1d43d9b922d296f88c3fea
+      template: 'APC NetBotz Rack Monitor 250'
+      name: 'APC NetBotz Rack Monitor 250'
+      description: |
+        ## Overview
+        
+        * LLD of Sensors 
+        * Trigger Prototypes for recommended Humidity and Tempurature based on Netbotz configured thresholds
+        * Graph Prototypes for Temperature and Humidity
+      templates:
+        - name: 'Template Module ICMP Ping'
+      groups:
+        - name: Templates
+      items:
+        - uuid: 290d10d0294449438971f3c208082312
+          name: 'Firmware Version'
+          type: SNMP_AGENT
+          snmp_oid: .1.3.6.1.4.1.318.1.1.10.3.1.3.0
+          key: firmwareVersion
+          value_type: TEXT
+          trends: '0'
+          tags:
+            - tag: EnvMon
+              value: Status
+        - uuid: 87a9fcff2ce54d588c8e56829ec16d2b
+          name: 'Model Number'
+          type: SNMP_AGENT
+          snmp_oid: .1.3.6.1.4.1.318.1.1.10.3.1.2.0
+          key: modelNumber
+          value_type: TEXT
+          trends: '0'
+          description: 'Model Number from APC NetBotz'
+          tags:
+            - tag: EnvMon
+              value: Status
+        - uuid: 6eab62588e4145a9a81b7955a0d91a31
+          name: 'System Name'
+          type: SNMP_AGENT
+          snmp_oid: .1.3.6.1.2.1.1.5.0
+          key: sysName
+          value_type: TEXT
+          trends: '0'
+          description: 'System Name from APC NetBotz'
+          tags:
+            - tag: EnvMon
+              value: Status
+      discovery_rules:
+        - uuid: f987b3f2aa944381be0ed30bcaa14cd5
+          name: 'Fluid sensor'
+          type: SNMP_AGENT
+          snmp_oid: 'discovery[{#SNMPVALUE},1.3.6.1.4.1.318.1.1.10.3.20.6.1.2]'
+          key: apc.enviro.sensor.fluid
+          delay: 30s
+          lifetime: 30d
+          enabled_lifetime_type: DISABLE_NEVER
+          item_prototypes:
+            - uuid: f1eb30de9b2246859ae7c1b097460809
+              name: '{#SNMPVALUE} Fluid Detection'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.318.1.1.10.3.20.6.1.4.{#SNMPINDEX}'
+              key: 'apc.enviro.sensor.fluid.status[{#SNMPINDEX}]'
+              delay: 15s
+              value_type: TEXT
+              trends: '0'
+              description: |
+                #
+                
+                3 = unknow status, probably sensor not connected
+                2 = fluid not detected
+                1 = fluid detected
+              preprocessing:
+                - type: STR_REPLACE
+                  parameters:
+                    - '2'
+                    - 'Fluid not detected'
+                - type: STR_REPLACE
+                  parameters:
+                    - '1'
+                    - 'Fluid detected'
+              tags:
+                - tag: EnvMon
+                  value: Fluid
+              trigger_prototypes:
+                - uuid: 18cc91c4d4eb4c1ea4d8a625a5128606
+                  expression: 'last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.fluid.status[{#SNMPINDEX}])="Fluid detected"'
+                  name: '{#SNMPVALUE} Fluid detected'
+                  priority: DISASTER
+                  manual_close: 'YES'
+        - uuid: adebea00215f4d778becc9d5c8fbed68
+          name: 'APC Temp/Humidity Sensor Module'
+          type: SNMP_AGENT
+          snmp_oid: 'discovery[{#SNMPVALUE},1.3.6.1.4.1.318.1.1.10.4.2.3.1.3]'
+          key: apc.enviro.sensor.module
+          delay: 15s
+          lifetime: 30d
+          enabled_lifetime_type: DISABLE_NEVER
+          item_prototypes:
+            - uuid: 43a3a206a1b340879f1f25ea2ddf009a
+              name: '{#SNMPVALUE} Alarm'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.318.1.1.10.4.2.3.1.8.{#SNMPINDEX}'
+              key: 'apc.enviro.sensor.module.alarm.value.["{#SNMPINDEX}"]'
+              delay: 30s
+              history: 5d
+              trends: 90d
+              tags:
+                - tag: EnvMon
+                  value: Temphum
+            - uuid: 91ad1d2462114b33899dd75bba39f5e2
+              name: '{#SNMPVALUE} Humitity: Threshold - High'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.318.1.1.10.4.2.5.1.20.{#SNMPINDEX}'
+              key: 'apc.enviro.sensor.module.humidity.threshold.high.["{#SNMPINDEX}"]'
+              delay: 30s
+              history: 5d
+              trends: 90d
+              units: '%'
+              tags:
+                - tag: EnvMon
+                  value: Temphum
+            - uuid: cd2db961d010410f9e76a33fe3687b9f
+              name: '{#SNMPVALUE} Humitity: Threshold - Hysteresis'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.318.1.1.10.4.2.5.1.23.{#SNMPINDEX}'
+              key: 'apc.enviro.sensor.module.humidity.threshold.hysteresis.["{#SNMPINDEX}"]'
+              delay: 30s
+              history: 5d
+              trends: 90d
+              units: '%'
+              tags:
+                - tag: EnvMon
+                  value: Temphum
+            - uuid: 3db589d257604c3a9b354d6528385542
+              name: '{#SNMPVALUE} Humitity: Threshold - Low'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.318.1.1.10.4.2.5.1.21.{#SNMPINDEX}'
+              key: 'apc.enviro.sensor.module.humidity.threshold.low.["{#SNMPINDEX}"]'
+              delay: 30s
+              history: 5d
+              trends: 90d
+              units: '%'
+              tags:
+                - tag: EnvMon
+                  value: Temphum
+            - uuid: 8742b556627a4c4580d89cc62c75e50f
+              name: '{#SNMPVALUE} Humitity: Threshold - Max'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.318.1.1.10.4.2.5.1.19.{#SNMPINDEX}'
+              key: 'apc.enviro.sensor.module.humidity.threshold.max.["{#SNMPINDEX}"]'
+              delay: 30s
+              history: 5d
+              trends: 90d
+              units: '%'
+              tags:
+                - tag: EnvMon
+                  value: Temphum
+            - uuid: 1c5a64b7d2a640cfaac9743a82e3a0cf
+              name: '{#SNMPVALUE} Humitity: Threshold - Min'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.318.1.1.10.4.2.5.1.22.{#SNMPINDEX}'
+              key: 'apc.enviro.sensor.module.humidity.threshold.min.["{#SNMPINDEX}"]'
+              delay: 30s
+              history: 5d
+              trends: 90d
+              units: '%'
+              tags:
+                - tag: EnvMon
+                  value: Temphum
+            - uuid: 646f52edd1b341d39a0fd912e6ace520
+              name: '{#SNMPVALUE} Humitity'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.318.1.1.10.4.2.3.1.6.{#SNMPINDEX}'
+              key: 'apc.enviro.sensor.module.humidity.value.["{#SNMPINDEX}"]'
+              delay: 30s
+              history: 5d
+              trends: 90d
+              units: '%'
+              tags:
+                - tag: EnvMon
+                  value: Temphum
+            - uuid: 0791aa688039410d808242933cdd1590
+              name: '{#SNMPVALUE} Temperature: Threshold - High'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.318.1.1.10.4.2.5.1.7.{#SNMPINDEX}'
+              key: 'apc.enviro.sensor.module.temperature.threshold.high.["{#SNMPINDEX}"]'
+              delay: 30s
+              history: 5d
+              trends: 90d
+              units: °C
+              tags:
+                - tag: EnvMon
+                  value: Temphum
+            - uuid: ad8e999a5a9f4787b9cb616643026eb8
+              name: '{#SNMPVALUE} Temperature: Threshold - Hysteresis'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.318.1.1.10.4.2.5.1.10.{#SNMPINDEX}'
+              key: 'apc.enviro.sensor.module.temperature.threshold.hysteresis.["{#SNMPINDEX}"]'
+              delay: 30s
+              history: 5d
+              trends: 90d
+              units: °C
+              tags:
+                - tag: EnvMon
+                  value: Temphum
+            - uuid: fa3d4ad981be48708d238a314c3c55d7
+              name: '{#SNMPVALUE} Temperature: Threshold - Long Term Decreasing Rate Time'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.318.1.1.10.4.2.5.1.16.{#SNMPINDEX}'
+              key: 'apc.enviro.sensor.module.temperature.threshold.long.descreasing.time.["{#SNMPINDEX}"]'
+              delay: 30s
+              history: 5d
+              trends: 90d
+              units: m
+              tags:
+                - tag: EnvMon
+                  value: Temphum
+            - uuid: f08b1aba25c84c23be6ce283b44d764c
+              name: '{#SNMPVALUE} Temperature: Threshold - Long Term Decreasing Rate Value'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.318.1.1.10.4.2.5.1.15.{#SNMPINDEX}'
+              key: 'apc.enviro.sensor.module.temperature.threshold.long.descreasing.value.["{#SNMPINDEX}"]'
+              delay: 30s
+              history: 5d
+              trends: 90d
+              units: °C
+              tags:
+                - tag: EnvMon
+                  value: Temphum
+            - uuid: a689a7baf466482fbfdd21fb5ea449b7
+              name: '{#SNMPVALUE} Temperature: Threshold - Long Term Increasing Rate Time'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.318.1.1.10.4.2.5.1.18.{#SNMPINDEX}'
+              key: 'apc.enviro.sensor.module.temperature.threshold.long.increasing.time.["{#SNMPINDEX}"]'
+              delay: 30s
+              history: 5d
+              trends: 90d
+              units: m
+              tags:
+                - tag: EnvMon
+                  value: Temphum
+            - uuid: f79a08c7fbca4d0597a10e4d0db32135
+              name: '{#SNMPVALUE} Temperature: Threshold - Long Term Increasing Rate Value'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.318.1.1.10.4.2.5.1.17.{#SNMPINDEX}'
+              key: 'apc.enviro.sensor.module.temperature.threshold.long.increasing.value.["{#SNMPINDEX}"]'
+              delay: 30s
+              history: 5d
+              trends: 90d
+              units: °C
+              tags:
+                - tag: EnvMon
+                  value: Temphum
+            - uuid: 7dc37c7f86344ee4a119fa40b8047c0d
+              name: '{#SNMPVALUE} Temperature: Threshold - Low'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.318.1.1.10.4.2.5.1.8.{#SNMPINDEX}'
+              key: 'apc.enviro.sensor.module.temperature.threshold.low.["{#SNMPINDEX}"]'
+              delay: 30s
+              history: 5d
+              trends: 90d
+              units: °C
+              tags:
+                - tag: EnvMon
+                  value: Temphum
+            - uuid: bf95aabe19f7419d8b202e1bf841d52c
+              name: '{#SNMPVALUE} Temperature: Threshold - Max'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.318.1.1.10.4.2.5.1.6.{#SNMPINDEX}'
+              key: 'apc.enviro.sensor.module.temperature.threshold.max.["{#SNMPINDEX}"]'
+              delay: 30s
+              history: 5d
+              trends: 90d
+              units: °C
+              tags:
+                - tag: EnvMon
+                  value: Temphum
+            - uuid: 96ec99b0d0c34ea1af2e280c2dd5e3f3
+              name: '{#SNMPVALUE} Temperature: Threshold - Min'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.318.1.1.10.4.2.5.1.9.{#SNMPINDEX}'
+              key: 'apc.enviro.sensor.module.temperature.threshold.min.["{#SNMPINDEX}"]'
+              delay: 30s
+              history: 5d
+              trends: 90d
+              units: °C
+              tags:
+                - tag: EnvMon
+                  value: Temphum
+            - uuid: 6ed68629558e46e69d24b12d249b578b
+              name: '{#SNMPVALUE} Temperature: Threshold - Short Term Decreasing Rate Time'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.318.1.1.10.4.2.5.1.12.{#SNMPINDEX}'
+              key: 'apc.enviro.sensor.module.temperature.threshold.short.descreasing.time.["{#SNMPINDEX}"]'
+              delay: 30s
+              history: 5d
+              trends: 90d
+              units: m
+              tags:
+                - tag: EnvMon
+                  value: Temphum
+            - uuid: 8111d27026a745cabc28b0ac5111ebf5
+              name: '{#SNMPVALUE} Temperature: Threshold - Short Term Decreasing Rate Value'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.318.1.1.10.4.2.5.1.11.{#SNMPINDEX}'
+              key: 'apc.enviro.sensor.module.temperature.threshold.short.descreasing.value.["{#SNMPINDEX}"]'
+              delay: 30s
+              history: 5d
+              trends: 90d
+              units: °C
+              tags:
+                - tag: EnvMon
+                  value: Temphum
+            - uuid: 7e3ac8d36cca4591a2d5f6c619375a77
+              name: '{#SNMPVALUE} Temperature: Threshold - Short Term Increasing Rate Time'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.318.1.1.10.4.2.5.1.14.{#SNMPINDEX}'
+              key: 'apc.enviro.sensor.module.temperature.threshold.short.increasing.time.["{#SNMPINDEX}"]'
+              delay: 30s
+              history: 5d
+              trends: 90d
+              units: m
+              tags:
+                - tag: EnvMon
+                  value: Temphum
+            - uuid: 7a5595e346d0465a81925223ed12945e
+              name: '{#SNMPVALUE} Temperature: Threshold - Short Term Increasing Rate Value'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.318.1.1.10.4.2.5.1.13.{#SNMPINDEX}'
+              key: 'apc.enviro.sensor.module.temperature.threshold.short.increasing.value.["{#SNMPINDEX}"]'
+              delay: 30s
+              history: 5d
+              trends: 90d
+              units: °C
+              tags:
+                - tag: EnvMon
+                  value: Temphum
+            - uuid: 823355c28b4c422e966dfa3f771dfd3c
+              name: '{#SNMPVALUE} Temperature'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.318.1.1.10.4.2.3.1.9.{#SNMPINDEX}'
+              key: 'apc.enviro.sensor.module.temperature.value.["{#SNMPINDEX}"]'
+              delay: 30s
+              history: 5d
+              value_type: FLOAT
+              trends: 90d
+              units: °C
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '0.1'
+              tags:
+                - tag: EnvMon
+                  value: Temphum
+          trigger_prototypes:
+            - uuid: a64a0fda24e04265b53a75d2ed4903d7
+              expression: '(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.humidity.value.["{#SNMPINDEX}"])<=last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.humidity.threshold.low.["{#SNMPINDEX}"]))'
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: '(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.humidity.value.["{#SNMPINDEX}"])>=(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.humidity.threshold.low.["{#SNMPINDEX}"])+last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.humidity.threshold.hysteresis.["{#SNMPINDEX}"])))'
+              name: '{#SNMPVALUE} {ITEM.LASTVALUE} :: Humidity < Low Threshold'
+              priority: INFO
+              manual_close: 'YES'
+              dependencies:
+                - name: '{#SNMPVALUE} {ITEM.LASTVALUE} :: Humidity < Min Threshold'
+                  expression: '(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.humidity.value.["{#SNMPINDEX}"])<=last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.humidity.threshold.min.["{#SNMPINDEX}"]))'
+                  recovery_expression: '(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.humidity.value.["{#SNMPINDEX}"])>=(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.humidity.threshold.min.["{#SNMPINDEX}"])+last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.humidity.threshold.hysteresis.["{#SNMPINDEX}"])))'
+            - uuid: 37cc97537c44417a8256d888c79f77e8
+              expression: '(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.humidity.value.["{#SNMPINDEX}"])<=last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.humidity.threshold.min.["{#SNMPINDEX}"]))'
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: '(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.humidity.value.["{#SNMPINDEX}"])>=(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.humidity.threshold.min.["{#SNMPINDEX}"])+last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.humidity.threshold.hysteresis.["{#SNMPINDEX}"])))'
+              name: '{#SNMPVALUE} {ITEM.LASTVALUE} :: Humidity < Min Threshold'
+              priority: INFO
+              manual_close: 'YES'
+            - uuid: d7f451f76a434cc6bcae74760ac93668
+              expression: '(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.humidity.value.["{#SNMPINDEX}"])>=last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.humidity.threshold.high.["{#SNMPINDEX}"]))'
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: '(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.humidity.value.["{#SNMPINDEX}"])<=(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.humidity.threshold.high.["{#SNMPINDEX}"])-last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.humidity.threshold.hysteresis.["{#SNMPINDEX}"])))'
+              name: '{#SNMPVALUE} {ITEM.LASTVALUE} :: Humidity > High Threshold'
+              priority: WARNING
+              manual_close: 'YES'
+              dependencies:
+                - name: '{#SNMPVALUE} {ITEM.LASTVALUE} :: Humidity > Max Threshold'
+                  expression: '(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.humidity.value.["{#SNMPINDEX}"])>=last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.humidity.threshold.max.["{#SNMPINDEX}"]))'
+                  recovery_expression: '(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.humidity.value.["{#SNMPINDEX}"])<=(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.humidity.threshold.max.["{#SNMPINDEX}"])-last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.humidity.threshold.hysteresis.["{#SNMPINDEX}"])))'
+            - uuid: 649822e1af53484ab05614a5944226f2
+              expression: '(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.humidity.value.["{#SNMPINDEX}"])>=last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.humidity.threshold.max.["{#SNMPINDEX}"]))'
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: '(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.humidity.value.["{#SNMPINDEX}"])<=(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.humidity.threshold.max.["{#SNMPINDEX}"])-last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.humidity.threshold.hysteresis.["{#SNMPINDEX}"])))'
+              name: '{#SNMPVALUE} {ITEM.LASTVALUE} :: Humidity > Max Threshold'
+              priority: DISASTER
+              manual_close: 'YES'
+            - uuid: 66aa2eded1a64132ba91843b208a484d
+              expression: '(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.temperature.value.["{#SNMPINDEX}"])<=last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.temperature.threshold.low.["{#SNMPINDEX}"]))'
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: '(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.temperature.value.["{#SNMPINDEX}"])>=(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.temperature.threshold.low.["{#SNMPINDEX}"])+last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.temperature.threshold.hysteresis.["{#SNMPINDEX}"])))'
+              name: '{#SNMPVALUE} {ITEM.LASTVALUE} :: Temperature < Low Threshold'
+              priority: INFO
+              manual_close: 'YES'
+              dependencies:
+                - name: '{#SNMPVALUE} {ITEM.LASTVALUE} :: Temperature < Min Threshold'
+                  expression: '(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.temperature.value.["{#SNMPINDEX}"])<=last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.temperature.threshold.min.["{#SNMPINDEX}"]))'
+                  recovery_expression: '(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.temperature.value.["{#SNMPINDEX}"])>=(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.temperature.threshold.min.["{#SNMPINDEX}"])+last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.temperature.threshold.hysteresis.["{#SNMPINDEX}"])))'
+            - uuid: 5c5c088bdedd426abff0371f96c39762
+              expression: '(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.temperature.value.["{#SNMPINDEX}"])<=last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.temperature.threshold.min.["{#SNMPINDEX}"]))'
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: '(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.temperature.value.["{#SNMPINDEX}"])>=(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.temperature.threshold.min.["{#SNMPINDEX}"])+last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.temperature.threshold.hysteresis.["{#SNMPINDEX}"])))'
+              name: '{#SNMPVALUE} {ITEM.LASTVALUE} :: Temperature < Min Threshold'
+              priority: INFO
+              manual_close: 'YES'
+            - uuid: 5ded09c8c6db456db3b2f22ff5dd9520
+              expression: '(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.temperature.value.["{#SNMPINDEX}"])>=last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.temperature.threshold.high.["{#SNMPINDEX}"]))'
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: '(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.temperature.value.["{#SNMPINDEX}"])<=(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.temperature.threshold.high.["{#SNMPINDEX}"])-last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.temperature.threshold.hysteresis.["{#SNMPINDEX}"])))'
+              name: '{#SNMPVALUE} {ITEM.LASTVALUE} :: Temperature > High Threshold'
+              priority: AVERAGE
+              manual_close: 'YES'
+              dependencies:
+                - name: '{#SNMPVALUE} {ITEM.LASTVALUE} :: Temperature > Max Threshold'
+                  expression: '(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.temperature.value.["{#SNMPINDEX}"])>=last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.temperature.threshold.max.["{#SNMPINDEX}"]))'
+                  recovery_expression: '(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.temperature.value.["{#SNMPINDEX}"])<=(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.temperature.threshold.max.["{#SNMPINDEX}"])-last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.temperature.threshold.hysteresis.["{#SNMPINDEX}"])))'
+            - uuid: d9c16b38c9054a63a235c89e5e394aaf
+              expression: '(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.temperature.value.["{#SNMPINDEX}"])>=last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.temperature.threshold.max.["{#SNMPINDEX}"]))'
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: '(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.temperature.value.["{#SNMPINDEX}"])<=(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.temperature.threshold.max.["{#SNMPINDEX}"])-last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.module.temperature.threshold.hysteresis.["{#SNMPINDEX}"])))'
+              name: '{#SNMPVALUE} {ITEM.LASTVALUE} :: Temperature > Max Threshold'
+              priority: DISASTER
+              manual_close: 'YES'
+        - uuid: 2c0114efbce147b989660d52d237c058
+          name: 'Smoke sensor'
+          type: SNMP_AGENT
+          snmp_oid: 'discovery[{#SNMPVALUE},1.3.6.1.4.1.318.1.1.10.3.20.2.1.2]'
+          key: apc.enviro.sensor.smoke
+          delay: 30s
+          lifetime: 30d
+          enabled_lifetime_type: DISABLE_NEVER
+          item_prototypes:
+            - uuid: e9334221258d47a6a1f0f9d079be2ca0
+              name: '{#SNMPVALUE} Smoke Detection'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.318.1.1.10.3.20.2.1.4.{#SNMPINDEX}'
+              key: 'apc.enviro.sensor.smoke.status[{#SNMPINDEX}]'
+              delay: 15s
+              value_type: TEXT
+              trends: '0'
+              description: |
+                #
+                
+                3 = unknow status, probably sensor not connected
+                2 = smoke not detected
+                1 = smoke detected
+              preprocessing:
+                - type: STR_REPLACE
+                  parameters:
+                    - '1'
+                    - 'Smoke detected'
+                - type: STR_REPLACE
+                  parameters:
+                    - '2'
+                    - 'Smoke not detected'
+                - type: STR_REPLACE
+                  parameters:
+                    - '3'
+                    - 'Unkown status'
+              tags:
+                - tag: EnvMon
+                  value: Smoke
+              trigger_prototypes:
+                - uuid: bcdae15b55e749aaa7bcad61722a1fb9
+                  expression: 'last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.smoke.status[{#SNMPINDEX}])="Smoke detected"'
+                  name: '{#SNMPVALUE} Smoke detected'
+                  priority: DISASTER
+                  manual_close: 'YES'
+        - uuid: 53a8d6a0a2a8490f87a4888e33e53609
+          name: 'Wireless APC Sensor'
+          type: SNMP_AGENT
+          snmp_oid: 'discovery[{#SNMPVALUE},1.3.6.1.4.1.318.1.1.10.5.1.1.1.3]'
+          key: apc.enviro.sensor.wireless
+          delay: 30s
+          lifetime: 30d
+          enabled_lifetime_type: DISABLE_NEVER
+          item_prototypes:
+            - uuid: 6f0acf862b574607b9f561224ba15cfd
+              name: '{#SNMPVALUE} Alarm - Enabled'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.318.1.1.10.5.1.1.1.4.{#SNMPINDEX}'
+              key: 'apc.enviro.sensor.wireless.alarm.value.["{#SNMPINDEX}"]'
+              delay: 30s
+              history: 5d
+              trends: 30d
+              tags:
+                - tag: EnvMon
+                  value: Wireless
+            - uuid: 29d627157a6a4c28a7743e01ea8659c5
+              name: '{#SNMPVALUE} Battery: Threshold - Low'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.318.1.1.10.5.1.1.1.17.{#SNMPINDEX}'
+              key: 'apc.enviro.sensor.wireless.battery.threshold.low.["{#SNMPINDEX}"]'
+              delay: 30s
+              history: 5d
+              value_type: FLOAT
+              trends: 30d
+              units: V
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '0.1'
+              tags:
+                - tag: EnvMon
+                  value: Wireless
+            - uuid: 40ff01d8959a496c873757c2cbac44a3
+              name: '{#SNMPVALUE} Battery: Threshold - Min'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.318.1.1.10.5.1.1.1.18.{#SNMPINDEX}'
+              key: 'apc.enviro.sensor.wireless.battery.threshold.min.["{#SNMPINDEX}"]'
+              delay: 30s
+              history: 5d
+              value_type: FLOAT
+              trends: 30d
+              units: V
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '0.1'
+              tags:
+                - tag: EnvMon
+                  value: Wireless
+            - uuid: 0e4328b0961348989d12e470dd677650
+              name: '{#SNMPVALUE} Battery'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.318.1.1.10.5.1.1.1.16.{#SNMPINDEX}'
+              key: 'apc.enviro.sensor.wireless.battery.value.["{#SNMPINDEX}"]'
+              delay: 30s
+              history: 5d
+              value_type: FLOAT
+              trends: 30d
+              units: V
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '0.1'
+              tags:
+                - tag: EnvMon
+                  value: Wireless
+            - uuid: 5cbd32a8a1f945738946cc289a7abb18
+              name: '{#SNMPVALUE} Humidity: Threshold - High'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.318.1.1.10.5.1.1.1.9.{#SNMPINDEX}'
+              key: 'apc.enviro.sensor.wireless.humidity.threshold.high.["{#SNMPINDEX}"]'
+              delay: 30s
+              history: 5d
+              value_type: FLOAT
+              trends: 30d
+              units: '%'
+              preprocessing:
+                - type: IN_RANGE
+                  parameters:
+                    - '0'
+                    - '100'
+              tags:
+                - tag: EnvMon
+                  value: Wireless
+            - uuid: b53b854382b6482e98f4939a13c61477
+              name: '{#SNMPVALUE} Humidity: Threshold - Low'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.318.1.1.10.5.1.1.1.10.{#SNMPINDEX}'
+              key: 'apc.enviro.sensor.wireless.humidity.threshold.low.["{#SNMPINDEX}"]'
+              delay: 30s
+              history: 5d
+              value_type: FLOAT
+              trends: 30d
+              units: '%'
+              preprocessing:
+                - type: IN_RANGE
+                  parameters:
+                    - '0'
+                    - '100'
+              tags:
+                - tag: EnvMon
+                  value: Wireless
+            - uuid: 8185c4d54f27409c8ddcd84a72a2da75
+              name: '{#SNMPVALUE} Humidity: Threshold - Max'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.318.1.1.10.5.1.1.1.14.{#SNMPINDEX}'
+              key: 'apc.enviro.sensor.wireless.humidity.threshold.max.["{#SNMPINDEX}"]'
+              delay: 30s
+              history: 5d
+              value_type: FLOAT
+              trends: 30d
+              units: '%'
+              preprocessing:
+                - type: IN_RANGE
+                  parameters:
+                    - '0'
+                    - '100'
+              tags:
+                - tag: EnvMon
+                  value: Wireless
+            - uuid: 492900c4f90e422c9d76b44a20b820b3
+              name: '{#SNMPVALUE} Humidity: Threshold - Min'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.318.1.1.10.5.1.1.1.15.{#SNMPINDEX}'
+              key: 'apc.enviro.sensor.wireless.humidity.threshold.min.["{#SNMPINDEX}"]'
+              delay: 30s
+              history: 5d
+              value_type: FLOAT
+              trends: 30d
+              units: '%'
+              preprocessing:
+                - type: IN_RANGE
+                  parameters:
+                    - '0'
+                    - '100'
+              tags:
+                - tag: EnvMon
+                  value: Wireless
+            - uuid: 938bf399df1b4728ab4df34cb5f3b89a
+              name: '{#SNMPVALUE} Humidity'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.318.1.1.10.5.1.1.1.8.{#SNMPINDEX}'
+              key: 'apc.enviro.sensor.wireless.humidity.value.["{#SNMPINDEX}"]'
+              delay: 30s
+              history: 5d
+              value_type: FLOAT
+              trends: 30d
+              units: '%'
+              preprocessing:
+                - type: IN_RANGE
+                  parameters:
+                    - '0'
+                    - '100'
+              tags:
+                - tag: EnvMon
+                  value: Wireless
+            - uuid: a7e477df6df242c2a113f7800326d5d7
+              name: '{#SNMPVALUE} RSSI: Threshold - Low'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.318.1.1.10.5.1.1.1.20.{#SNMPINDEX}'
+              key: 'apc.enviro.sensor.wireless.rssi.threshold.low.["{#SNMPINDEX}"]'
+              delay: 30s
+              history: 5d
+              value_type: FLOAT
+              trends: 30d
+              units: '%'
+              preprocessing:
+                - type: IN_RANGE
+                  parameters:
+                    - '0'
+                    - '100'
+              tags:
+                - tag: EnvMon
+                  value: Wireless
+            - uuid: bb1919ccd7724a1696558e65bcc1ed1a
+              name: '{#SNMPVALUE} RSSI: Threshold - Min'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.318.1.1.10.5.1.1.1.21.{#SNMPINDEX}'
+              key: 'apc.enviro.sensor.wireless.rssi.threshold.min.["{#SNMPINDEX}"]'
+              delay: 30s
+              history: 5d
+              value_type: FLOAT
+              trends: 30d
+              units: '%'
+              preprocessing:
+                - type: IN_RANGE
+                  parameters:
+                    - '0'
+                    - '100'
+              tags:
+                - tag: EnvMon
+                  value: Wireless
+            - uuid: 57b2f10e22ac49e08bc63705cd4b78d2
+              name: '{#SNMPVALUE} RSSI'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.318.1.1.10.5.1.1.1.19.{#SNMPINDEX}'
+              key: 'apc.enviro.sensor.wireless.rssi.value.["{#SNMPINDEX}"]'
+              delay: 30s
+              history: 5d
+              value_type: FLOAT
+              trends: 30d
+              units: '%'
+              preprocessing:
+                - type: IN_RANGE
+                  parameters:
+                    - '0'
+                    - '100'
+              tags:
+                - tag: EnvMon
+                  value: Wireless
+            - uuid: 1eef324e03104b938d8868e48128c7b3
+              name: '{#SNMPVALUE} Temperature: Threshold - High'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.318.1.1.10.5.1.1.1.6.{#SNMPINDEX}'
+              key: 'apc.enviro.sensor.wireless.temperature.threshold.high.["{#SNMPINDEX}"]'
+              delay: 30s
+              history: 5d
+              value_type: FLOAT
+              trends: 30d
+              units: °C
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '0.1'
+              tags:
+                - tag: EnvMon
+                  value: Wireless
+            - uuid: 4fa34dc8d7b847639227328bc3e6d8f7
+              name: '{#SNMPVALUE} Temperature: Threshold - Low'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.318.1.1.10.5.1.1.1.7.{#SNMPINDEX}'
+              key: 'apc.enviro.sensor.wireless.temperature.threshold.low.["{#SNMPINDEX}"]'
+              delay: 30s
+              history: 5d
+              value_type: FLOAT
+              trends: 30d
+              units: °C
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '0.1'
+              tags:
+                - tag: EnvMon
+                  value: Wireless
+            - uuid: 892000af789a4c97bb27d984bb85048b
+              name: '{#SNMPVALUE} Temperature: Threshold - Max'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.318.1.1.10.5.1.1.1.12.{#SNMPINDEX}'
+              key: 'apc.enviro.sensor.wireless.temperature.threshold.max.["{#SNMPINDEX}"]'
+              delay: 30s
+              history: 5d
+              value_type: FLOAT
+              trends: 30d
+              units: °C
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '0.1'
+              tags:
+                - tag: EnvMon
+                  value: Wireless
+            - uuid: 0cb7b3fce3d4418180f422f2d83b1091
+              name: '{#SNMPVALUE} Temperature: Threshold - Min'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.318.1.1.10.5.1.1.1.13.{#SNMPINDEX}'
+              key: 'apc.enviro.sensor.wireless.temperature.threshold.min.["{#SNMPINDEX}"]'
+              delay: 30s
+              history: 5d
+              value_type: FLOAT
+              trends: 30d
+              units: °C
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '0.1'
+              tags:
+                - tag: EnvMon
+                  value: Wireless
+            - uuid: 91f7bb87be6a49a6a4f0603a0d106abe
+              name: '{#SNMPVALUE} Temperature'
+              type: SNMP_AGENT
+              snmp_oid: '.1.3.6.1.4.1.318.1.1.10.5.1.1.1.5.{#SNMPINDEX}'
+              key: 'apc.enviro.sensor.wireless.temperature.value.["{#SNMPINDEX}"]'
+              delay: 30s
+              history: 5d
+              value_type: FLOAT
+              trends: 30d
+              units: °C
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '0.1'
+              tags:
+                - tag: EnvMon
+                  value: Wireless
+          trigger_prototypes:
+            - uuid: 1248d404f96143f89e02a08bba7fb9fc
+              expression: |
+                last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.alarm.value.["{#SNMPINDEX}"])=1
+                and
+                (last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.battery.value.["{#SNMPINDEX}"])<=last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.battery.threshold.low.["{#SNMPINDEX}"]))
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: |
+                last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.alarm.value.["{#SNMPINDEX}"])=0
+                or
+                (last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.battery.value.["{#SNMPINDEX}"])>=(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.battery.threshold.low.["{#SNMPINDEX}"])+{$HYSTERESIS}))
+              name: '{#SNMPVALUE} {ITEM.LASTVALUE} :: Battery < Low Threshold'
+              priority: WARNING
+              manual_close: 'YES'
+              dependencies:
+                - name: '{#SNMPVALUE} {ITEM.LASTVALUE} :: Battery < Min Threshold'
+                  expression: |
+                    last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.alarm.value.["{#SNMPINDEX}"])=1
+                    and
+                    (last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.battery.value.["{#SNMPINDEX}"])<=last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.battery.threshold.min.["{#SNMPINDEX}"]))
+                  recovery_expression: |
+                    last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.alarm.value.["{#SNMPINDEX}"])=0
+                    or
+                    (last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.battery.value.["{#SNMPINDEX}"])>=(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.battery.threshold.min.["{#SNMPINDEX}"])+{$HYSTERESIS}))
+            - uuid: 8348900ec1064daf878208034c27d370
+              expression: |
+                last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.alarm.value.["{#SNMPINDEX}"])=1
+                and
+                (last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.battery.value.["{#SNMPINDEX}"])<=last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.battery.threshold.min.["{#SNMPINDEX}"]))
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: |
+                last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.alarm.value.["{#SNMPINDEX}"])=0
+                or
+                (last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.battery.value.["{#SNMPINDEX}"])>=(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.battery.threshold.min.["{#SNMPINDEX}"])+{$HYSTERESIS}))
+              name: '{#SNMPVALUE} {ITEM.LASTVALUE} :: Battery < Min Threshold'
+              priority: HIGH
+              manual_close: 'YES'
+            - uuid: cc98808a67bb492eadaa19a895722a3d
+              expression: |
+                last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.alarm.value.["{#SNMPINDEX}"])=1
+                and
+                (last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.humidity.value.["{#SNMPINDEX}"])<=last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.humidity.threshold.low.["{#SNMPINDEX}"]))
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: |
+                last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.alarm.value.["{#SNMPINDEX}"])=0
+                or
+                (last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.humidity.value.["{#SNMPINDEX}"])>=(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.humidity.threshold.low.["{#SNMPINDEX}"])+{$HYSTERESIS}))
+              name: '{#SNMPVALUE} {ITEM.LASTVALUE} :: Humidity < Low Threshold'
+              priority: INFO
+              manual_close: 'YES'
+              dependencies:
+                - name: '{#SNMPVALUE} {ITEM.LASTVALUE} :: Humidity < Min Threshold'
+                  expression: |
+                    last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.alarm.value.["{#SNMPINDEX}"])=1
+                    and
+                    (last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.humidity.value.["{#SNMPINDEX}"])<=last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.humidity.threshold.min.["{#SNMPINDEX}"]))
+                  recovery_expression: |
+                    last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.alarm.value.["{#SNMPINDEX}"])=0
+                    or
+                    (last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.humidity.value.["{#SNMPINDEX}"])>=(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.humidity.threshold.min.["{#SNMPINDEX}"])+{$HYSTERESIS}))
+            - uuid: 8a134852929d4d1cbdf65b80d5f22ddf
+              expression: |
+                last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.alarm.value.["{#SNMPINDEX}"])=1
+                and
+                (last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.humidity.value.["{#SNMPINDEX}"])<=last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.humidity.threshold.min.["{#SNMPINDEX}"]))
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: |
+                last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.alarm.value.["{#SNMPINDEX}"])=0
+                or
+                (last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.humidity.value.["{#SNMPINDEX}"])>=(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.humidity.threshold.min.["{#SNMPINDEX}"])+{$HYSTERESIS}))
+              name: '{#SNMPVALUE} {ITEM.LASTVALUE} :: Humidity < Min Threshold'
+              priority: WARNING
+              manual_close: 'YES'
+            - uuid: 510140bd905d401fb6cad72be9dcf4f1
+              expression: |
+                last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.alarm.value.["{#SNMPINDEX}"])=1
+                and
+                (last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.humidity.value.["{#SNMPINDEX}"])>=last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.humidity.threshold.high.["{#SNMPINDEX}"]))
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: |
+                last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.alarm.value.["{#SNMPINDEX}"])=0
+                or
+                (last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.humidity.value.["{#SNMPINDEX}"])<=(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.humidity.threshold.high.["{#SNMPINDEX}"])+{$HYSTERESIS}))
+              name: '{#SNMPVALUE} {ITEM.LASTVALUE} :: Humidity > High Threshold'
+              priority: AVERAGE
+              manual_close: 'YES'
+              dependencies:
+                - name: '{#SNMPVALUE} {ITEM.LASTVALUE} :: Humidity > Max Threshold'
+                  expression: |
+                    last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.alarm.value.["{#SNMPINDEX}"])=1
+                    and
+                    (last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.humidity.value.["{#SNMPINDEX}"])>=last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.humidity.threshold.max.["{#SNMPINDEX}"]))
+                  recovery_expression: |
+                    last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.alarm.value.["{#SNMPINDEX}"])=0
+                    or
+                    (last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.humidity.value.["{#SNMPINDEX}"])<=(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.humidity.threshold.max.["{#SNMPINDEX}"])+{$HYSTERESIS}))
+            - uuid: cae691cfa9b244448e4da2aeb0b6de94
+              expression: |
+                last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.alarm.value.["{#SNMPINDEX}"])=1
+                and
+                (last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.humidity.value.["{#SNMPINDEX}"])>=last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.humidity.threshold.max.["{#SNMPINDEX}"]))
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: |
+                last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.alarm.value.["{#SNMPINDEX}"])=0
+                or
+                (last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.humidity.value.["{#SNMPINDEX}"])<=(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.humidity.threshold.max.["{#SNMPINDEX}"])+{$HYSTERESIS}))
+              name: '{#SNMPVALUE} {ITEM.LASTVALUE} :: Humidity > Max Threshold'
+              priority: DISASTER
+              manual_close: 'YES'
+            - uuid: 6b198b3a5e9043e0a94ad21b4ee365f2
+              expression: |
+                last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.alarm.value.["{#SNMPINDEX}"])=1
+                and
+                (last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.rssi.value.["{#SNMPINDEX}"])<=last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.rssi.threshold.low.["{#SNMPINDEX}"]))
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: |
+                last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.alarm.value.["{#SNMPINDEX}"])=0
+                or
+                (last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.rssi.value.["{#SNMPINDEX}"])>=(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.rssi.threshold.low.["{#SNMPINDEX}"])+{$HYSTERESIS}))
+              name: '{#SNMPVALUE} {ITEM.LASTVALUE} :: RSSI < Low Threshold'
+              priority: AVERAGE
+              manual_close: 'YES'
+              dependencies:
+                - name: '{#SNMPVALUE} {ITEM.LASTVALUE} :: RSSI < Min Threshold'
+                  expression: |
+                    last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.alarm.value.["{#SNMPINDEX}"])=1
+                    and
+                    (last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.rssi.value.["{#SNMPINDEX}"])<=last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.rssi.threshold.min.["{#SNMPINDEX}"]))
+                  recovery_expression: |
+                    last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.alarm.value.["{#SNMPINDEX}"])=0
+                    or
+                    (last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.rssi.value.["{#SNMPINDEX}"])>=(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.rssi.threshold.min.["{#SNMPINDEX}"])+{$HYSTERESIS}))
+            - uuid: a4b62bcd0bac494087d9f593d493b82e
+              expression: |
+                last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.alarm.value.["{#SNMPINDEX}"])=1
+                and
+                (last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.rssi.value.["{#SNMPINDEX}"])<=last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.rssi.threshold.min.["{#SNMPINDEX}"]))
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: |
+                last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.alarm.value.["{#SNMPINDEX}"])=0
+                or
+                (last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.rssi.value.["{#SNMPINDEX}"])>=(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.rssi.threshold.min.["{#SNMPINDEX}"])+{$HYSTERESIS}))
+              name: '{#SNMPVALUE} {ITEM.LASTVALUE} :: RSSI < Min Threshold'
+              priority: DISASTER
+              manual_close: 'YES'
+            - uuid: 3904ccc627824c0888195fbb090dc5e0
+              expression: |
+                last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.alarm.value.["{#SNMPINDEX}"])=1
+                and
+                (last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.temperature.value.["{#SNMPINDEX}"])<=last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.temperature.threshold.low.["{#SNMPINDEX}"]))
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: |
+                last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.alarm.value.["{#SNMPINDEX}"])=0
+                or
+                (last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.temperature.value.["{#SNMPINDEX}"])>=(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.temperature.threshold.low.["{#SNMPINDEX}"])+{$HYSTERESIS}))
+              name: '{#SNMPVALUE} {ITEM.LASTVALUE} :: Temperature < Low Threshold'
+              priority: INFO
+              manual_close: 'YES'
+              dependencies:
+                - name: '{#SNMPVALUE} {ITEM.LASTVALUE} :: Temperature < Min Threshold'
+                  expression: |
+                    last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.alarm.value.["{#SNMPINDEX}"])=1
+                    and
+                    (last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.temperature.value.["{#SNMPINDEX}"])<=last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.temperature.threshold.min.["{#SNMPINDEX}"]))
+                  recovery_expression: |
+                    last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.alarm.value.["{#SNMPINDEX}"])=0
+                    or
+                    (last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.temperature.value.["{#SNMPINDEX}"])>=(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.temperature.threshold.min.["{#SNMPINDEX}"])+{$HYSTERESIS}))
+            - uuid: ddced436310840299c00a62b6ebdb164
+              expression: |
+                last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.alarm.value.["{#SNMPINDEX}"])=1
+                and
+                (last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.temperature.value.["{#SNMPINDEX}"])<=last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.temperature.threshold.min.["{#SNMPINDEX}"]))
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: |
+                last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.alarm.value.["{#SNMPINDEX}"])=0
+                or
+                (last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.temperature.value.["{#SNMPINDEX}"])>=(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.temperature.threshold.min.["{#SNMPINDEX}"])+{$HYSTERESIS}))
+              name: '{#SNMPVALUE} {ITEM.LASTVALUE} :: Temperature < Min Threshold'
+              priority: WARNING
+              manual_close: 'YES'
+            - uuid: 2709c331a14449b0a60362ba31294cab
+              expression: |
+                last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.alarm.value.["{#SNMPINDEX}"])=1
+                and
+                (last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.temperature.value.["{#SNMPINDEX}"])>=last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.temperature.threshold.high.["{#SNMPINDEX}"]))
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: |
+                last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.alarm.value.["{#SNMPINDEX}"])=0
+                or
+                (last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.temperature.value.["{#SNMPINDEX}"])<=(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.temperature.threshold.high.["{#SNMPINDEX}"])+{$HYSTERESIS}))
+              name: '{#SNMPVALUE} {ITEM.LASTVALUE} :: Temperature > High Threshold'
+              priority: AVERAGE
+              manual_close: 'YES'
+              dependencies:
+                - name: '{#SNMPVALUE} {ITEM.LASTVALUE} :: Temperature > Max Threshold'
+                  expression: |
+                    last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.alarm.value.["{#SNMPINDEX}"])=1
+                    and
+                    (last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.temperature.value.["{#SNMPINDEX}"])>=last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.temperature.threshold.max.["{#SNMPINDEX}"]))
+                  recovery_expression: |
+                    last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.alarm.value.["{#SNMPINDEX}"])=0
+                    or
+                    (last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.temperature.value.["{#SNMPINDEX}"])>=(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.temperature.threshold.max.["{#SNMPINDEX}"])+{$HYSTERESIS}))
+            - uuid: 094fdd2245c24585a97fad66d6fa2bcf
+              expression: |
+                last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.alarm.value.["{#SNMPINDEX}"])=1
+                and
+                (last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.temperature.value.["{#SNMPINDEX}"])>=last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.temperature.threshold.max.["{#SNMPINDEX}"]))
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: |
+                last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.alarm.value.["{#SNMPINDEX}"])=0
+                or
+                (last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.temperature.value.["{#SNMPINDEX}"])>=(last(/APC NetBotz Rack Monitor 250/apc.enviro.sensor.wireless.temperature.threshold.max.["{#SNMPINDEX}"])+{$HYSTERESIS}))
+              name: '{#SNMPVALUE} {ITEM.LASTVALUE} :: Temperature > Max Threshold'
+              priority: DISASTER
+              manual_close: 'YES'
+      macros:
+        - macro: '{$HYSTERESIS}'
+          value: '2'
